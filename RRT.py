@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
-# rrt.py
+# RRT.py
 # This program generates a simple rapidly
-# exploring random tree (RRT) in a rectangular region.
+# exploring random tree (RRT) in a rectangular region, with obstacles
 #
-# Written by Steve LaValle
-# May 2011
+# Shawn Hanna
+# March 5, 2014
 
 import sys, random, math, pygame
 from pygame.locals import *
@@ -13,14 +13,14 @@ from math import sqrt,cos,sin,atan2
 from RRT_includes import *
 
 #constants
-XDIM = 640
-YDIM = 480
+XDIM = 720
+YDIM = 500
 WINSIZE = [XDIM, YDIM]
 EPSILON = 7.0
 NUMNODES = 5000
 GOAL_RADIUS = 10
 MIN_DISTANCE_TO_ADD = 1.0
-GAME_LEVEL = 0
+GAME_LEVEL = 1
 
 pygame.init()
 fpsClock = pygame.time.Clock()
@@ -57,19 +57,6 @@ def collides(p):
             return True
     return False
 
-def init_obstacles(configNum):
-    rectObs = []
-    print("config "+ str(configNum))
-    if (configNum == 0):
-        rectObs.append(pygame.Rect((XDIM / 2.0 - 50,YDIM / 2.0 - 100),(100,200)))
-    if (configNum == 1):
-        rectObs.append(pygame.Rect((40,10),(100,200)))
-    if (configNum == 2):
-        rectObs.append(pygame.Rect((40,10),(100,200)))
-    if (configNum == 3):
-        rectObs.append(pygame.Rect((40,10),(100,200)))
-
-    return rectObs
 
 def get_random():
     return random.random()*XDIM, random.random()*YDIM
@@ -87,9 +74,10 @@ def init_obstacles(configNum):
     rectObs = []
     print("config "+ str(configNum))
     if (configNum == 0):
-        rectObs.append(pygame.Rect((XDIM / 2.0 - 50,YDIM / 2.0 - 100),(100,200)))
+        rectObs.append(pygame.Rect((XDIM / 2.0 - 50, YDIM / 2.0 - 100),(100,200)))
     if (configNum == 1):
         rectObs.append(pygame.Rect((40,10),(100,200)))
+        rectObs.append(pygame.Rect((500,200),(500,200)))
     if (configNum == 2):
         rectObs.append(pygame.Rect((40,10),(100,200)))
     if (configNum == 3):
@@ -98,27 +86,13 @@ def init_obstacles(configNum):
     for rect in rectObs:
         pygame.draw.rect(screen, red, rect)
 
-def get_random():
-    return random.random()*XDIM, random.random()*YDIM
-
-def get_random_clear():
-    while True:
-        p = random.random()*XDIM, random.random()*YDIM
-        noCollision = collides(p)
-        if noCollision == False:
-            return p
-
-def point_circle_collision(p1, p2, radius):
-    distance = dist(p1,p2)
-    if (distance <= radius):
-        return True
-    return False
 
 def reset():
     global count
     screen.fill(black)
     init_obstacles(GAME_LEVEL)
     count = 0
+
 
 def main():
     global count
@@ -127,28 +101,26 @@ def main():
     initialPoint = Node(None, None)
     goalPoseSet = False
     goalPoint = Node(None, None)
-    goalFound = False
-    buildTreePhase = False
-    setPointPhase = True
+    currentState = 'init'
 
     nodes = []
     reset()
-    init_obstacles(GAME_LEVEL)
 
     while True:
-        if setPointPhase == True:
-            buildTreePhase = False
-            goalFound = False
+        if currentState == 'init':
             print('goal point not yet set')
             fpsClock.tick(10)
-        elif goalFound == True:
+        elif currentState == 'goalFound':
             #traceback
             currNode = goalNode.parent
             while currNode.parent != None:
                 pygame.draw.line(screen,cyan,currNode.point,currNode.parent.point)
                 currNode = currNode.parent
-
-        elif buildTreePhase == True:
+            optimizePhase = True
+        elif currentState == 'optimize':
+            fpsClock.tick(0.5)
+            pass
+        elif currentState == 'buildTree':
             count = count+1
             if count < NUMNODES:
                 foundNext = False
@@ -171,21 +143,22 @@ def main():
                 pygame.draw.line(screen,white,parentNode.point,newnode)
 
                 if point_circle_collision(newnode, goalPoint.point, GOAL_RADIUS):
-                    goalFound = True
+                    currentState = 'goalFound'
                     goalNode = nodes[len(nodes)-1]
 
                 if count%100 == 0:
                     print("node: " + str(count))
             else:
-                print("Finished")
-                break;
+                print("Ran out of nodes... :(")
+                return;
 
+        #handle events
         for e in pygame.event.get():
             if e.type == QUIT or (e.type == KEYUP and e.key == K_ESCAPE):
-                sys.exit("Leaving because you requested it.")
+                sys.exit("Exiting")
             if e.type == MOUSEBUTTONDOWN:
                 print('mouse down')
-                if setPointPhase == True:
+                if currentState == 'init':
                     if initPoseSet == False:
                         nodes = []
                         if collides(e.pos) == False:
@@ -201,10 +174,9 @@ def main():
                             goalPoint = Node(e.pos,None)
                             goalPoseSet = True
                             pygame.draw.circle(screen, green, goalPoint.point, GOAL_RADIUS)
-                            buildTreePhase = True
-                            setPointPhase = False
+                            currentState = 'buildTree'
                 else:
-                    setPointPhase = True
+                    currentState = 'init'
                     initPoseSet = False
                     goalPoseSet = False
                     reset()
@@ -216,4 +188,4 @@ def main():
 # if python says run, then we should run
 if __name__ == '__main__':
     main()
-    raw_input("press any key to quit")
+    input("press Enter to quit")
