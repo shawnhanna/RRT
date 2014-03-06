@@ -10,13 +10,7 @@
 import sys, random, math, pygame
 from pygame.locals import *
 from math import sqrt,cos,sin,atan2
-
-class Node(object):
-    """Node in a tree"""
-    def __init__(self, point, parent):
-        super(Node, self).__init__()
-        self.point = point
-        self.parent = parent
+from RRT_includes import *
 
 #constants
 XDIM = 640
@@ -26,8 +20,10 @@ EPSILON = 7.0
 NUMNODES = 5000
 GOAL_RADIUS = 10
 MIN_DISTANCE_TO_ADD = 1.0
+GAME_LEVEL = 0
 
 pygame.init()
+fpsClock = pygame.time.Clock()
 
 #initialize and prepare screen
 screen = pygame.display.set_mode(WINSIZE)
@@ -38,12 +34,11 @@ red = 255, 0, 0
 blue = 0, 255, 0
 green = 0, 0, 255
 cyan = 0,255,255
-screen.fill(black)
-count = 0
 
+# setup program variables
+count = 0
 rectObs = []
 
-fpsClock = pygame.time.Clock()
 
 def dist(p1,p2):
     return sqrt((p1[0]-p2[0])*(p1[0]-p2[0])+(p1[1]-p2[1])*(p1[1]-p2[1]))
@@ -62,12 +57,42 @@ def collides(p):
             return True
     return False
 
+def init_obstacles(configNum):
+    rectObs = []
+    print("config "+ str(configNum))
+    if (configNum == 0):
+        rectObs.append(pygame.Rect((XDIM / 2.0 - 50,YDIM / 2.0 - 100),(100,200)))
+    if (configNum == 1):
+        rectObs.append(pygame.Rect((40,10),(100,200)))
+    if (configNum == 2):
+        rectObs.append(pygame.Rect((40,10),(100,200)))
+    if (configNum == 3):
+        rectObs.append(pygame.Rect((40,10),(100,200)))
+
+    return rectObs
+
+def get_random():
+    return random.random()*XDIM, random.random()*YDIM
+
+def get_random_clear():
+    while True:
+        p = get_random()
+        noCollision = collides(p)
+        if noCollision == False:
+            return p
+
 
 def init_obstacles(configNum):
     global rectObs
     rectObs = []
     print("config "+ str(configNum))
     if (configNum == 0):
+        rectObs.append(pygame.Rect((XDIM / 2.0 - 50,YDIM / 2.0 - 100),(100,200)))
+    if (configNum == 1):
+        rectObs.append(pygame.Rect((40,10),(100,200)))
+    if (configNum == 2):
+        rectObs.append(pygame.Rect((40,10),(100,200)))
+    if (configNum == 3):
         rectObs.append(pygame.Rect((40,10),(100,200)))
 
     for rect in rectObs:
@@ -92,12 +117,12 @@ def point_circle_collision(p1, p2, radius):
 def reset():
     global count
     screen.fill(black)
-    init_obstacles(0)
+    init_obstacles(GAME_LEVEL)
     count = 0
 
 def main():
     global count
-    
+
     initPoseSet = False
     initialPoint = Node(None, None)
     goalPoseSet = False
@@ -108,7 +133,7 @@ def main():
 
     nodes = []
     reset()
-    init_obstacles(0)
+    init_obstacles(GAME_LEVEL)
 
     while True:
         if setPointPhase == True:
