@@ -128,8 +128,6 @@ def main():
                     rand = get_random_clear()
                     # print("random num = " + str(rand))
                     parentNode = nodes[0]
-                    if count == 0:
-                        foundNext = True
 
                     for p in nodes: #find nearest vertex
                         if dist(p.point,rand) <= dist(parentNode.point,rand): #check to see if this vertex is closer than the previously selected closest
